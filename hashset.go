@@ -12,9 +12,15 @@ import (
 // The zero value is NOT usable - use NewHashSet() to create instances.
 type HashSet[T comparable] map[T]struct{}
 
-// NewHashSet creates a new empty HashSet. Always use this constructor to initialize the set.
-func NewHashSet[T comparable]() HashSet[T] {
-	return make(HashSet[T])
+// NewHashSet creates a new HashSet with optional initial elements. Always use this constructor to initialize the set.
+func NewHashSet[T comparable](elements ...T) HashSet[T] {
+	set := make(HashSet[T])
+	if len(elements) > 0 {
+		for _, element := range elements {
+			set.Add(element)
+		}
+	}
+	return set
 }
 
 // Add inserts an element into the set.
