@@ -1,4 +1,4 @@
-// Package set provides a generic interface for mathematical set operations.
+// Module `set` provides a generic interface for mathematical set operations.
 // It supports common set operations such as union, intersection, difference, and symmetric difference,
 // along with in-place modifications, element iteration, and serialization.
 package goset
@@ -19,16 +19,16 @@ type Set[T comparable] interface {
 
 	// Remove deletes the element from the set.
 	// If the element doesn't exist, it has no effect.
-	Remove(any T)
+	Remove(element T)
 
 	// Contains reports whether the element exists in the set.
-	Contains(any T) bool
+	Contains(element T) bool
 
 	// Union returns a new set containing all elements present in either set.
 	Union(other Set[T]) Set[T]
 
 	// Intersection returns a new set containing elements present in both sets.
-	Intersection(otherset Set[T]) Set[T]
+	Intersection(other Set[T]) Set[T]
 
 	// Difference returns a new set containing elements in this set but not in the other.
 	Difference(other Set[T]) Set[T]
@@ -61,8 +61,10 @@ type Set[T comparable] interface {
 	// The order is undefined and may change between realizations.
 	Elements() []T
 
+	// Clone returns a copy of the set.
+	Clone() Set[T]
+
 	// All returns an iterator for ranging over elements.
-	// Requires GOEXPERIMENT=rangefunc in Go 1.22+.
 	All() iter.Seq[T]
 
 	// Len returns the number of elements in the set.

@@ -1,3 +1,6 @@
+// Package hashset provides an implementation of the Set interface on top of the golang map structure.
+//
+// Note: HashSet is not thread-safe. For concurrent access, external synchronization is required.
 package goset
 
 import (
@@ -13,30 +16,30 @@ import (
 type HashSet[T comparable] map[T]struct{}
 
 // NewHashSet creates a new HashSet with optional initial elements. Always use this constructor to initialize the set.
-func NewHashSet[T comparable](elements ...T) HashSet[T] {
+func NewHashSet[T comparable](elements ...T) *HashSet[T] {
 	set := make(HashSet[T])
 	if len(elements) > 0 {
 		for _, element := range elements {
 			set.Add(element)
 		}
 	}
-	return set
+	return &set
 }
 
 // Add inserts an element into the set.
 // If the element already exists, it's a no-op.
 //
 // Time complexity: O(1).
-func (set HashSet[T]) Add(element T) {
-	set[element] = struct{}{}
+func (set *HashSet[T]) Add(element T) {
+	(*set)[element] = struct{}{}
 }
 
 // Remove deletes an element from the set.
 // If the element doesn't exist, it's a no-op.
 //
 // Time complexity: O(1).
-func (set HashSet[T]) Remove(element T) {
-	delete(set, element)
+func (set *HashSet[T]) Remove(element T) {
+	delete(*set, element)
 }
 
 // Contains returns true if the element exists in the set.
@@ -51,11 +54,14 @@ func (set HashSet[T]) Contains(element T) bool {
 //
 // Time complexity: O(n + m) where n and m are the sizes of the sets.
 func (set HashSet[T]) Union(other Set[T]) Set[T] {
-	newset := maps.Clone(set)
-	for element := range other.All() {
-		newset.Add(element)
+	newset := make(HashSet[T], set.Len()+other.Len())
+	for item := range set {
+		newset[item] = struct{}{}
 	}
-	return newset
+	for element := range other.All() {
+		newset[element] = struct{}{}
+	}
+	return &newset
 }
 
 // Intersection returns a new set containing elements present in both sets.
@@ -91,21 +97,24 @@ func (set HashSet[T]) Difference(other Set[T]) Set[T] {
 //
 // Time complexity: O(n + m) where n and m are the sizes of the sets.
 func (set HashSet[T]) SymmetricDifference(other Set[T]) Set[T] {
-	newset := maps.Clone(set)
+	newset := make(HashSet[T], set.Len()+other.Len())
+	for item := range set {
+		newset[item] = struct{}{}
+	}
 	for element := range other.All() {
-		if newset.Contains(element) {
-			newset.Remove(element)
+		if _, ok := newset[element]; ok {
+			delete(newset, element)
 		} else {
-			newset.Add(element)
+			newset[element] = struct{}{}
 		}
 	}
-	return newset
+	return &newset
 }
 
 // Merge adds all elements from the other set to this set (in-place union).
 //
 // Time complexity: O(n) where n is size of the _other_ set.
-func (set HashSet[T]) Merge(other Set[T]) {
+func (set *HashSet[T]) Merge(other Set[T]) {
 	for element := range other.All() {
 		set.Add(element)
 	}
@@ -117,8 +126,8 @@ func (set HashSet[T]) Merge(other Set[T]) {
 //
 // For two HashSet implementations, this operates in O(n) average time, as Contains() is O(1).
 // If the other set has O(m) Contains() complexity (where m = its size), total complexity becomes O(n*m).
-func (set HashSet[T]) Retain(other Set[T]) {
-	for item := range set {
+func (set *HashSet[T]) Retain(other Set[T]) {
+	for item := range *set {
 		if !other.Contains(item) {
 			set.Remove(item)
 		}
@@ -131,8 +140,8 @@ func (set HashSet[T]) Retain(other Set[T]) {
 //
 // For two HashSet implementations, this operates in O(n) average time, as Contains() is O(1).
 // If the other set has O(m) Contains() complexity (where m = its size), total complexity becomes O(n*m).
-func (set HashSet[T]) Subtract(other Set[T]) {
-	for item := range set {
+func (set *HashSet[T]) Subtract(other Set[T]) {
+	for item := range *set {
 		if other.Contains(item) {
 			set.Remove(item)
 		}
@@ -142,7 +151,7 @@ func (set HashSet[T]) Subtract(other Set[T]) {
 // Xor replaces this set with elements present in exactly one set (in-place symmetric difference).
 //
 // Time complexity: O(n) where n is size of the _other_ set.
-func (set HashSet[T]) Xor(other Set[T]) {
+func (set *HashSet[T]) Xor(other Set[T]) {
 	for element := range other.All() {
 		if set.Contains(element) {
 			set.Remove(element)
@@ -178,8 +187,8 @@ func (set HashSet[T]) IsSuperset(other Set[T]) bool {
 	if set.Len() < other.Len() {
 		return false
 	}
-	for item := range set {
-		if !other.Contains(item) {
+	for item := range other.All() {
+		if !set.Contains(item) {
 			return false
 		}
 	}
@@ -213,8 +222,16 @@ func (set HashSet[T]) Elements() []T {
 	return elements
 }
 
+// Clone returns a copy of the set.
+func (set HashSet[T]) Clone() Set[T] {
+	cloned := make(HashSet[T], len(set))
+	for item := range set {
+		cloned[item] = struct{}{}
+	}
+	return &cloned
+}
+
 // All returns an iterator for ranging over elements.
-// Requires GOEXPERIMENT=rangefunc in Go 1.22+.
 func (set HashSet[T]) All() iter.Seq[T] {
 	return maps.Keys(set)
 }
